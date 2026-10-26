@@ -1,0 +1,14 @@
+# Code Review Report
+
+| Line Number | Defect Type | Why it is a problem | Proposed fix | Severity |
+|-------------|-------------|--------------------|--------------|----------|
+| 47 | Assignment instead of comparison | `if (monsters[i]->id = id)` assigns the value of `id` instead of checking equality. This changes the object state and makes the condition always evaluate to true. | Replace `=` with `==` in the comparison. | High |
+| 55-58 | Null pointer dereference | `Monster* m = findMonster(id);` can return `nullptr`, but the code immediately dereferences `m->health`. This can crash the program. | Check whether `m == nullptr` before use, e.g. `if (m == nullptr) return 0;` | High |
+| 64-66 | Out-of-bounds access | The loop condition `i <= monsterCount` allows `monsters[monsterCount]` to be accessed even though valid indices are `0` to `monsterCount - 1`. | Change the condition to `i < monsterCount`. | High |
+| 70-74 | Dangling reference | `getMonsterLabel()` returns a reference to a local variable `label`, which is destroyed when the function ends. This creates undefined behavior. | Return the string by value: `std::string getMonsterLabel(int id)`. | High |
+| 77-80 | Uninitialized variable / integer truncation | `double sum;` is never initialized, and `sum += ...` produces undefined behavior. Also the function returns an `int` even though `sum / monsterCount` is a floating-point value. | Initialize `sum` to `0.0` and change the return type to `double`. | High |
+| 83-87 | Use-after-free | `delete m;` frees the monster, but the next line prints `m->name`, which dereferences a freed pointer. | Print the monster name before deleting it, or set the pointer to `nullptr` after deletion. | Critical |
+| 94-99 | Missing return path | `playerRank()` has branches for `score > 1000` and `score > 100`, but no return value is provided for other scores. This can lead to undefined behavior. | Add a default return value, such as `return 0;` or a proper ranking condition. | Medium |
+| 101-109 | Buffer overflow / wrong deletion | `char* name = new char[10]; std::cin >> name;` can overflow if the user enters more than 9 characters. Also `delete name;` should be `delete[] name;` for arrays. | Use `std::string name;` and `std::cin >> name;` or use `delete[]` if keeping char arrays. | Critical |
+| 121 | Memory leak | `Monster* bonus = new Monster(...)` is allocated but never deleted. | Delete the pointer explicitly when it is no longer needed, or manage it with RAII. | Medium |
+| 133 | Shallow copy bug | `Game copy = game;` performs a shallow copy of the `monsters` array. Both objects then point to the same dynamically allocated `Monster` objects, causing double-free issues in the destructor. | Implement a custom copy constructor or disable copying with `Game(const Game&) = delete;`. | Critical |
